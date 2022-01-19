@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Mutagen.Bethesda.Synthesis.Settings;
 
-namespace AllGUD
+namespace ImmersiveEquipmentDisplay
 {
     public class Settings
     {

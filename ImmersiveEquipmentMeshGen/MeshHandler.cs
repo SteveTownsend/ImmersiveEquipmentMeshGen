@@ -12,7 +12,7 @@ using nifly;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Archives;
 
-namespace AllGUD
+namespace ImmersiveEquipmentDisplay
 {
     public class MeshHandler
     {

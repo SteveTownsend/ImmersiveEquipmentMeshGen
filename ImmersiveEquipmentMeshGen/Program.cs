@@ -4,15 +4,14 @@ using Mutagen.Bethesda;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using System.Threading.Tasks;
+using ImmersiveEquipmentDisplay;
 using nifly;
 using Mutagen.Bethesda.Plugins;
 
-namespace AllGUD
+namespace ImmersiveEquipmentDisplay
 {
     public class ScriptLess
     {
-        private static readonly ModKey AllGUDModKey = ModKey.FromNameAndExtension("All Geared Up Derivative.esp");
-
         static Lazy<Settings> _settings = null!;
         static public Settings settings => _settings.Value;
 

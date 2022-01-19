@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "AllGUDMeshGen": {
+    "ImmersiveEquipmentMeshGen": {
       "commandName": "Project",
       "nativeDebugging": true
     }

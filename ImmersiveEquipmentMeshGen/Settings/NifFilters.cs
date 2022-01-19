@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace AllGUD
+namespace ImmersiveEquipmentDisplay
 {
     public class NifFilters
     {

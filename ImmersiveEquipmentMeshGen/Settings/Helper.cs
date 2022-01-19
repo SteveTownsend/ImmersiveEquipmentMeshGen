@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace AllGUD
+namespace ImmersiveEquipmentDisplay
 {
     public class Helper
     {

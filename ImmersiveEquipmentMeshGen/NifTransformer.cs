@@ -4,10 +4,10 @@ using System.Linq;
 using System.Threading;
 using System.Collections.Generic;
 using nifly;
-using ModelType = AllGUD.MeshHandler.ModelType;
-using WeaponType = AllGUD.MeshHandler.WeaponType;
+using ModelType = ImmersiveEquipmentDisplay.MeshHandler.ModelType;
+using WeaponType = ImmersiveEquipmentDisplay.MeshHandler.WeaponType;
 
-namespace AllGUD
+namespace ImmersiveEquipmentDisplay
 {
     class NifTransformer : IDisposable
     {

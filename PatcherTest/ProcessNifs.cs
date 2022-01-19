@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using Xunit;
-using AllGUD;
+using ImmersiveEquipmentDisplay;
 using nifly;
 
 namespace PatcherTest

@@ -2,24 +2,29 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30330.147
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF48-00C04F79EFBC}") = "ImmersiveEquipmentMeshGen", "ImmersiveEquipmentMeshGen\ImmersiveEquipmentMeshGen.csproj", "{07E5CF9A-2201-4BA4-B4D6-D05B5832DE69}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImmersiveEquipmentMeshGen", "ImmersiveEquipmentMeshGen\ImmersiveEquipmentMeshGen.csproj", "{15631F0F-CF15-4836-9CA1-CE01BFB509D4}"
 EndProject
-Project("{5821B114-FD53-48A6-B9FC-8B5B10BBD68C}") = "PatcherTest", "PatcherTest\PatcherTest.csproj", "{E3542FD0-5DCC-4F81-A836-8F9B226D6F7B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PatcherTest", "PatcherTest\PatcherTest.csproj", "{F5BC33AA-EE4E-4488-A9D5-8ABA2EF6968C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
+		Test|Any CPU = Test|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{07E5CF9A-2201-4BA4-B4D6-D05B5832DE69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{07E5CF9A-2201-4BA4-B4D6-D05B5832DE69}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{07E5CF9A-2201-4BA4-B4D6-D05B5832DE69}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{07E5CF9A-2201-4BA4-B4D6-D05B5832DE69}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E3542FD0-5DCC-4F81-A836-8F9B226D6F7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E3542FD0-5DCC-4F81-A836-8F9B226D6F7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E3542FD0-5DCC-4F81-A836-8F9B226D6F7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E3542FD0-5DCC-4F81-A836-8F9B226D6F7B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15631F0F-CF15-4836-9CA1-CE01BFB509D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15631F0F-CF15-4836-9CA1-CE01BFB509D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15631F0F-CF15-4836-9CA1-CE01BFB509D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15631F0F-CF15-4836-9CA1-CE01BFB509D4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15631F0F-CF15-4836-9CA1-CE01BFB509D4}.Test|Any CPU.ActiveCfg = Debug|Any CPU
+		{15631F0F-CF15-4836-9CA1-CE01BFB509D4}.Test|Any CPU.Build.0 = Debug|Any CPU
+		{F5BC33AA-EE4E-4488-A9D5-8ABA2EF6968C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5BC33AA-EE4E-4488-A9D5-8ABA2EF6968C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5BC33AA-EE4E-4488-A9D5-8ABA2EF6968C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5BC33AA-EE4E-4488-A9D5-8ABA2EF6968C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5BC33AA-EE4E-4488-A9D5-8ABA2EF6968C}.Test|Any CPU.ActiveCfg = Test|Any CPU
+		{F5BC33AA-EE4E-4488-A9D5-8ABA2EF6968C}.Test|Any CPU.Build.0 = Test|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

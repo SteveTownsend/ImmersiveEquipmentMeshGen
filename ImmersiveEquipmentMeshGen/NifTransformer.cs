@@ -682,7 +682,7 @@ namespace ImmersiveEquipmentDisplay
                 meshHandler._settings.diagnostics.logger.WriteLine("Attempting to generate transformed Mesh for {0}", nifPath);
 
                 // Transform Mesh in place
-                string destPath = Path.GetFullPath(meshHandler._settings.meshes.OutputFolder + MeshHandler.MeshPrefix + nifPath);
+                string destPath = meshHandler._settings.meshes.OutputFolder + MeshHandler.MeshPrefix + nifPath;
                 AddScabbardMirror(new HashSet<uint>(), scabbard, rootNode);
 
                 //Save and finish

@@ -255,7 +255,7 @@ namespace ImmersiveEquipmentDisplay
             newRef.SetIndex(newId);
             blockDest.name = newRef;
             // Hide the mirror, Immersive Equipment Display/Simple Dual Sheath will unhide as needed
-            if (blockName.get().Equals(ScbTag))
+            if (blockName.get().ToLower().Equals(ScbTag, StringComparison.OrdinalIgnoreCase))
             {
                 blockDest.flags = blockDest.flags | 0x1;
             }

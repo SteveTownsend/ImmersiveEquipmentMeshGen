@@ -174,6 +174,13 @@ namespace ImmersiveEquipmentDisplay
                     continue;
 
                 RecordModel(weap.FormKey, modelType, weap.Model);
+
+                // check first-person model in WNAM, that must be transformed too
+                IStaticGetter? staticGetter = weap.FirstPersonModel.TryResolve(ScriptLess.PatcherState.LinkCache);
+                if (staticGetter is not null && staticGetter.Model is not null)
+                {
+                    RecordModel(staticGetter.FormKey, modelType, staticGetter.Model);
+                }
             }
         }
 

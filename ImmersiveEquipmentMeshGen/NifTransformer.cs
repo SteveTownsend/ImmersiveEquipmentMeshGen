@@ -266,7 +266,8 @@ namespace ImmersiveEquipmentDisplay
                     return;
 
                 // TODO it appears these functions could be combined. Stick with script flow for safety, at least initially.
-                ApplyTransform(newId, blockDest); //In case things are at an angle where flipping x would produce incorrect results.
+                // per SlavicPotato1 - transform not required, see https://github.com/SlavicPotato/ied-dev/issues/1
+                // ApplyTransform(newId, blockDest); //In case things are at an angle where flipping x would produce incorrect results.
                 FlipAlongZ(newId, blockDest);
             }
             else

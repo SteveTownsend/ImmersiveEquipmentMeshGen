@@ -355,7 +355,7 @@ namespace ImmersiveEquipmentDisplay
                             using (var nif = new NifFile(bsaBytes))
                             {
                                 _settings.diagnostics.logger.WriteLine("Transform mesh {0} from BSA {1}", bsaMesh.Path, bsaFile);
-                                string newFile = _settings.meshes.OutputFolder + MeshPrefix + bsaMesh.Path;
+                                string newFile = _settings.meshes.OutputFolder + bsaMesh.Path;
                                 GenerateMesh(nif, bsaMesh.Path, newFile, targetMeshes[rawPath].modelType);
                             }
                             bsaDone.Add(rawPath, bsaFile);

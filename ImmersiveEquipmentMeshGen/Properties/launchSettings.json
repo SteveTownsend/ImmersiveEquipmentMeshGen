@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "AllGUDMeshGen": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30330.147
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{5821B114-FD53-48A6-B9FC-8B5B10BBD68C}") = "ImmersiveEquipmentMeshGen", "ImmersiveEquipmentMeshGen\ImmersiveEquipmentMeshGen.csproj", "{07E5CF9A-2201-4BA4-B4D6-D05B5832DE69}"
+EndProject
+Project("{5821B114-FD53-48A6-B9FC-8B5B10BBD68C}") = "PatcherTest", "PatcherTest\PatcherTest.csproj", "{E3542FD0-5DCC-4F81-A836-8F9B226D6F7B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{07E5CF9A-2201-4BA4-B4D6-D05B5832DE69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07E5CF9A-2201-4BA4-B4D6-D05B5832DE69}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07E5CF9A-2201-4BA4-B4D6-D05B5832DE69}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07E5CF9A-2201-4BA4-B4D6-D05B5832DE69}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3542FD0-5DCC-4F81-A836-8F9B226D6F7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3542FD0-5DCC-4F81-A836-8F9B226D6F7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3542FD0-5DCC-4F81-A836-8F9B226D6F7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3542FD0-5DCC-4F81-A836-8F9B226D6F7B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9CF87772-4FF6-43AF-B7F7-E3D216E55630}
+	EndGlobalSection
+EndGlobal

@@ -248,7 +248,7 @@ namespace ImmersiveEquipmentDisplay
         {
             using NiAVObject blockDest = niflycpp.BlockCache.SafeClone<NiAVObject>(source);
 
-            using var blockName = blockDest.name;
+            using var blockName = source.name;
             string newName = blockName.get() + LeftSuffix;
             uint newId = header.AddOrFindStringId(newName);
             NiStringRef newRef = new NiStringRef(newName);

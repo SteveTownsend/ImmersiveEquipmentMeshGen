@@ -19,7 +19,8 @@ namespace PatcherTest
             {
                 using NifFile originalNif = new NifFile();
                 originalNif.Load(nifFile);
-                meshHandler.GenerateMesh(originalNif, Path.GetFileName(nifFile), MeshHandler.ModelType.Unknown);
+                string newFile = settings.meshes.OutputFolder + Path.GetFileName(nifFile);
+                meshHandler.GenerateMesh(originalNif, nifFile, newFile, MeshHandler.ModelType.Unknown);
             }
         }
     }

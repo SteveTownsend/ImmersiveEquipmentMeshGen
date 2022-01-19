@@ -67,7 +67,7 @@ namespace ImmersiveEquipmentDisplay
         };
 
         private int countSkipped;
-        private int countPatched;
+        private int countCandidates;
         internal int countGenerated;
         private int countFailed;
 
@@ -266,7 +266,7 @@ namespace ImmersiveEquipmentDisplay
             return modelType;
         }
 
-        public void GenerateMesh(NifFile nif, string originalPath, ModelType modelType)
+        public void GenerateMesh(NifFile nif, string originalPath, string newPath, ModelType modelType)
         {
             try
             {
@@ -281,14 +281,14 @@ namespace ImmersiveEquipmentDisplay
                 else
                 {
                     // TODO selective patching by weapon type would need a filter here
-                    Interlocked.Increment(ref countPatched);
-                    using NifTransformer transformer = new NifTransformer(this, nif, originalPath, modelType, weaponType);
+                    Interlocked.Increment(ref countCandidates);
+                    using NifTransformer transformer = new NifTransformer(this, nif, originalPath, newPath, modelType, weaponType);
                     transformer.Generate();
                 }
             }
             catch (Exception e)
             {
-                ++countFailed;
+                Interlocked.Increment(ref countFailed);
                 _settings.diagnostics.logger.WriteLine("Exception processing {0}: {1}", originalPath, e.GetBaseException());
             }
         }
@@ -310,13 +310,14 @@ namespace ImmersiveEquipmentDisplay
             {
                 // loose file wins over BSA contents
                 string originalFile = _settings.meshes.InputFolder + MeshPrefix + kv.Key;
+                string newFile = _settings.meshes.OutputFolder + MeshPrefix + kv.Key;
                 if (File.Exists(originalFile))
                 {
                     _settings.diagnostics.logger.WriteLine("Transform mesh from loose file {0}", originalFile);
 
                     using NifFile nif = new NifFile();
                     nif.Load(originalFile);
-                    GenerateMesh(nif, originalFile, kv.Value.modelType);
+                    GenerateMesh(nif, originalFile, newFile, kv.Value.modelType);
                     looseDone.Add(kv.Key, 0);
                 }
                 else
@@ -354,7 +355,8 @@ namespace ImmersiveEquipmentDisplay
                             using (var nif = new NifFile(bsaBytes))
                             {
                                 _settings.diagnostics.logger.WriteLine("Transform mesh {0} from BSA {1}", bsaMesh.Path, bsaFile);
-                                GenerateMesh(nif, bsaMesh.Path, targetMeshes[rawPath].modelType);
+                                string newFile = _settings.meshes.OutputFolder + MeshPrefix + bsaMesh.Path;
+                                GenerateMesh(nif, bsaMesh.Path, newFile, targetMeshes[rawPath].modelType);
                             }
                             bsaDone.Add(rawPath, bsaFile);
                         }
@@ -373,8 +375,8 @@ namespace ImmersiveEquipmentDisplay
             }
             _settings.diagnostics.logger.WriteLine("{0} total meshes: found {1} Loose, {2} in BSA, {3} missing files",
                 targetMeshes.Count, looseDone.Count, bsaDone.Count, missingFiles.Count);
-            _settings.diagnostics.logger.WriteLine("Generated {0}, Patched {1}, Skipped {2}, Failed {3}",
-                countGenerated, countPatched, countSkipped, countFailed);
+            _settings.diagnostics.logger.WriteLine("Generated {0}, Candidates {1}, Skipped {2}, Failed {3}",
+                countGenerated, countCandidates, countSkipped, countFailed);
         }
 
         internal void Analyze()

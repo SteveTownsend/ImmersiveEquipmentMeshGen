@@ -15,8 +15,8 @@ namespace ImmersiveEquipmentDisplay
         [SynthesisSettingName("Output Folder")]
         [SynthesisTooltip("This must be a valid path on your computer. Typically this points to a new mod directory in your Mod Manager VFS, e.g. 'D:/ModdedSkyrim/mods/Immersive Equipment Display Output'. The suffix 'meshes/', where NIF files are read in-game, is added in the patcher and not needed here. Relative or absolute path is allowed.")]
         [SynthesisDescription("Path where transformed Weapon and Armour meshes are written.")]
-        public string OutputFolder { get; set; } = "";
-        //public string OutputFolder { get; set; } = "j:/omegalotd/tools/mods/Immersive Equipment Display Output";
+        //public string OutputFolder { get; set; } = "";
+        public string OutputFolder { get; set; } = "j:/omegalotd/tools/mods/Immersive Equipment Display Output";
 
         private List<string[]> _nifBlackList = new List<string[]>();
         private static List<string> DefaultBlackList()

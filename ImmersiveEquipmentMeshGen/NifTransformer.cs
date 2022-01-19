@@ -21,18 +21,20 @@ namespace ImmersiveEquipmentDisplay
         WeaponType nifWeapon;
         ModelType nifModel;
         string nifPath;
+        string destPath;
 
         bool meshHasController;
 
         ISet<uint> rootChildIds = new SortedSet<uint>();
 
-        internal NifTransformer(MeshHandler handler, NifFile source, string modelPath, ModelType modelType, WeaponType weaponType)
+        internal NifTransformer(MeshHandler handler, NifFile source, string modelPath, string newPath, ModelType modelType, WeaponType weaponType)
         {
             meshHandler = handler;
             nif = source;
             blockCache = new niflycpp.BlockCache(nif.GetHeader());
             header = blockCache.Header;
             nifPath = modelPath;
+            destPath = newPath;
             nifModel = modelType;
             nifWeapon = weaponType;
         }
@@ -682,7 +684,6 @@ namespace ImmersiveEquipmentDisplay
                 meshHandler._settings.diagnostics.logger.WriteLine("Attempting to generate transformed Mesh for {0}", nifPath);
 
                 // Transform Mesh in place
-                string destPath = meshHandler._settings.meshes.OutputFolder + MeshHandler.MeshPrefix + nifPath;
                 AddScabbardMirror(new HashSet<uint>(), scabbard, rootNode);
 
                 //Save and finish

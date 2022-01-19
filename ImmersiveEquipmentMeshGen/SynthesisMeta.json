@@ -1,6 +1,6 @@
 {
   "Nickname": "ImmersiveEquipmentMeshGen",
-  "Visibility": "Visible",
+  "Visibility": "Exclude",
   "OneLineDescription": "Mesh patcher for Immersive Equipment Displays, Skyrim SE",
   "LongDescription": "Mirror scabbards for proper left-side 1H weapon display",
   "PreferredAutoVersioning": "Default",

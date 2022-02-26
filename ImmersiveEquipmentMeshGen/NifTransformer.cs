@@ -244,7 +244,7 @@ namespace ImmersiveEquipmentDisplay
         }
 
         // Rename scabbard and any children, we are copying the entire tree mirrored into the dest mesh
-        private void AddScabbardMirror(ISet<uint> alreadyDone, NiAVObject source, NiNode parent)
+        private bool AddScabbardMirror(string nifPath, ISet<uint> alreadyDone, NiAVObject source, NiNode parent, bool scbRoot)
         {
             using NiAVObject blockDest = niflycpp.BlockCache.SafeClone<NiAVObject>(source);
 
@@ -254,16 +254,21 @@ namespace ImmersiveEquipmentDisplay
             NiStringRef newRef = new NiStringRef(newName);
             newRef.SetIndex(newId);
             blockDest.name = newRef;
-            // Hide the mirror, Immersive Equipment Display/Simple Dual Sheath will unhide as needed
-            if (blockName.get().ToLower().Equals(ScbTag, StringComparison.OrdinalIgnoreCase))
+
+            // Hide the mirror (just the root), Immersive Equipment Display/Simple Dual Sheath will unhide as needed
+            if (scbRoot)
             {
-                blockDest.flags = blockDest.flags | 0x1;
+                blockDest.flags |= 0x1;
             }
 
             if (blockDest is BSTriShape || blockDest is NiTriShape || blockDest is NiTriStrips)
             {
+                // seems that legacy trishapes aren't cloned properly, skip for now
+                if (blockDest is not BSTriShape)
+                    return false;
+
                 if (IsBloodMesh(blockDest as NiShape))
-                    return;
+                    return true;
 
                 // TODO it appears these functions could be combined. Stick with script flow for safety, at least initially.
                 ApplyTransform(newId, blockDest); //In case things are at an angle where flipping Z would produce incorrect results.
@@ -274,9 +279,11 @@ namespace ImmersiveEquipmentDisplay
                 NiNode? destNode = blockDest as NiNode;
                 if (destNode is not null)
                 {
-                    destNode.childRefs = new NiBlockRefArrayNiAVObject();
                     // Copy Blocks all the way down until a trishape is reached
                     using var childNodes = destNode.CopyChildRefs();
+
+                    destNode.childRefs = new NiBlockRefArrayNiAVObject();
+
                     foreach (var childNode in childNodes)
                     {
                         using (childNode)
@@ -287,9 +294,29 @@ namespace ImmersiveEquipmentDisplay
                             if (alreadyDone.Contains(childNode.index))
                                 continue;
                             alreadyDone.Add(childNode.index);
-                            meshHandler._settings.diagnostics.logger.WriteLine("AddScabbardMirror checking Child {0}", childNode.index);
-                            AddScabbardMirror(alreadyDone, block, destNode);
+                            meshHandler._settings.diagnostics.logger.WriteLine("{0}: AddScabbardMirror checking Child {1}", nifPath, childNode.index);
+                            
+                            if (!AddScabbardMirror(nifPath, alreadyDone, block, destNode, false))
+                            {
+                                return false;
+                            }
                         }
+                    }
+
+                }
+            }
+
+            // scb root should have atleast one child
+            if (scbRoot)
+            {
+                NiNode? node = blockDest as NiNode;
+                if (node is not null)
+                {
+                    if (node.GetChildren().GetSize() == 0)
+                    {
+                        meshHandler._settings.diagnostics.logger.WriteLine("{0}: AddScabbardMirror - empty root scb node", nifPath);
+
+                        return false;
                     }
                 }
             }
@@ -297,6 +324,8 @@ namespace ImmersiveEquipmentDisplay
             // Insert new block in the mesh once all editing due to child content is complete
             header.AddBlock(blockDest);
             nif.SetParentNode(blockDest, parent);
+
+            return true;
         }
 
         private bool IsBloodMesh(NiShape? shape)
@@ -658,9 +687,18 @@ namespace ImmersiveEquipmentDisplay
                     if (block == null)
                         continue;
                     rootChildIds.Add(childNode.index);
+
                     using var blockName = block.name;
                     if (blockName.get().ToLower().Equals(ScbTag, StringComparison.OrdinalIgnoreCase))
                     {
+                        // skip hidden scabbard nodes
+                        if ((block.flags & 0x1) == 0x1)
+                        {
+                            meshHandler._settings.diagnostics.logger.WriteLine(
+                                "Mesh {0} skipped: {1} block is hidden", nifPath, ScbTag);
+                            return;
+                        }
+
                         scabbard = block;
                         scabbardId = childNode.index;
                     }
@@ -684,7 +722,11 @@ namespace ImmersiveEquipmentDisplay
                 meshHandler._settings.diagnostics.logger.WriteLine("Attempting to generate transformed Mesh for {0}", nifPath);
 
                 // Transform Mesh in place
-                AddScabbardMirror(new HashSet<uint>(), scabbard, rootNode);
+                if (!AddScabbardMirror(nifPath, new HashSet<uint>(), scabbard, rootNode, true))
+                {
+                    meshHandler._settings.diagnostics.logger.WriteLine("{0}: AddScabbardMirror returned false", nifPath);
+                    return;
+                }
 
                 //Save and finish
                 nif.SafeSave(destPath, ScriptLess.saveOptions);

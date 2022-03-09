@@ -23,8 +23,6 @@ namespace ImmersiveEquipmentDisplay
         string nifPath;
         string destPath;
 
-        //bool meshHasController;
-
         ISet<uint> rootChildIds = new SortedSet<uint>();
 
         internal NifTransformer(MeshHandler handler, NifFile source, string modelPath, string newPath, ModelType modelType, WeaponType weaponType)
@@ -52,21 +50,6 @@ namespace ImmersiveEquipmentDisplay
             child.transform = transform;
 
             // Don't do this for shapes, Don't remove Transforms of Shapes in case they need to be mirrored
-            /*if (child.controllerRef != null && !child.controllerRef.IsEmpty())
-            {
-                NiTransformController controller = blockCache.EditableBlockById<NiTransformController>(child.controllerRef.index);
-                if (controller != null)
-                {
-                    meshHasController = true;
-                    // TODO requires enhancement for dynamic display
-                    //				if not bUseTemplates then
-                    //					exit;
-                }
-                if (!meshHasController)
-                {
-                    meshHandler._settings.diagnostics.logger.WriteLine("Expected NiTransformController at offset {0} not found", child.controllerRef.index);
-                }
-            }*/
             TransformChildren(child, childId, isBow);
         }
 

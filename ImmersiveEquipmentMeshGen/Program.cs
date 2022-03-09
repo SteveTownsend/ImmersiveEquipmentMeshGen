@@ -30,10 +30,11 @@ namespace ImmersiveEquipmentDisplay
         }
 
         // save options set to simplify binary comparison of output vs Edit Script output
+        // optimization and sorting should be kept off by default
         public static readonly nifly.NifSaveOptions saveOptions = new NifSaveOptions()
         {
-            optimize = true,
-            sortBlocks = true
+            optimize = false,
+            sortBlocks = false
         };
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)

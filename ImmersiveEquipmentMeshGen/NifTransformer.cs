@@ -23,8 +23,6 @@ namespace ImmersiveEquipmentDisplay
         string nifPath;
         string destPath;
 
-        bool meshHasController;
-
         ISet<uint> rootChildIds = new SortedSet<uint>();
 
         internal NifTransformer(MeshHandler handler, NifFile source, string modelPath, string newPath, ModelType modelType, WeaponType weaponType)
@@ -44,17 +42,6 @@ namespace ImmersiveEquipmentDisplay
             blockCache.Dispose();
         }
 
-        private void UnskinShader(NiBlockRefNiShader shaderRef)
-        {
-            NiShader shader = blockCache.EditableBlockById<NiShader>(shaderRef.index);
-            if (shader == null)
-            {
-                meshHandler._settings.diagnostics.logger.WriteLine("Expected NiShader at offset {0} not found", shaderRef.index);
-                return;
-            }
-            shader.SetSkinned(false);
-        }
-
         private void ApplyTransformToChild(NiAVObject parent, NiAVObject child, uint childId, bool isBow)
         {
             using MatTransform cTransform = child.transform;
@@ -63,21 +50,6 @@ namespace ImmersiveEquipmentDisplay
             child.transform = transform;
 
             // Don't do this for shapes, Don't remove Transforms of Shapes in case they need to be mirrored
-            if (child.controllerRef != null && !child.controllerRef.IsEmpty())
-            {
-                NiTransformController controller = blockCache.EditableBlockById<NiTransformController>(child.controllerRef.index);
-                if (controller != null)
-                {
-                    meshHasController = true;
-                    // TODO requires enhancement for dynamic display
-                    //				if not bUseTemplates then
-                    //					exit;
-                }
-                if (!meshHasController)
-                {
-                    meshHandler._settings.diagnostics.logger.WriteLine("Expected NiTransformController at offset {0} not found", child.controllerRef.index);
-                }
-            }
             TransformChildren(child, childId, isBow);
         }
 
@@ -112,137 +84,6 @@ namespace ImmersiveEquipmentDisplay
             }
         }
 
-        private void TransferVertexData(NiSkinPartition skinPartition, BSTriShape? bsTriShape)
-        {
-            if (bsTriShape == null)
-                return;
-            // Copy Vertex Data from NiSkinPartition
-            using var vertData = skinPartition.vertData;
-            bsTriShape.SetVertexData(vertData);
-
-            // Get the first partition, where Triangles and the rest is stored
-            // Haven't seen any with multiple partitions.
-            // Not sure how that would work, revisit if there's a problem.
-            using var partitions = skinPartition.partitions;
-            using var thePartition = partitions[0];
-            using var triangles = thePartition.triangles;
-            bsTriShape.SetTriangles(triangles);
-
-            bsTriShape.UpdateBounds();
-        }
-
-        private void TransformScale(NiShape parent, NiSkinInstance skinInstance)
-        {
-            // On the first bone, hope all bones have the same scale here! cause seriously, what the heck could you do if they weren't?
-            using var skinBoneRefs = skinInstance.boneRefs;
-            using var boneRefs = skinBoneRefs.GetRefs();
-            foreach (var boneRef in boneRefs)
-            {
-                using (boneRef)
-                {
-                    var bone = blockCache.EditableBlockById<NiNode>(boneRef.index);
-                    if (bone != null)
-                    {
-                        MatTransform rootTransform = parent.transform;
-                        rootTransform.scale *= bone.transform.scale;
-                        parent.transform = rootTransform;
-                        break;
-                    }
-                }
-            }
-
-            using var dataRef = skinInstance.dataRef;
-            if (!dataRef.IsEmpty())
-            {
-                NiSkinData skinData = blockCache.EditableBlockById<NiSkinData>(dataRef.index);
-                if (skinData != null)
-                {
-                    using MatTransform rootTransform = parent.transform;
-                    rootTransform.scale *= skinData.skinTransform.scale;
-                    parent.transform = rootTransform;
-                    if (skinData.bones.Count > 0)
-                    {
-                        rootTransform.scale *= skinData.bones[0].boneTransform.scale;
-                    }
-                }
-                else
-                {
-                    meshHandler._settings.diagnostics.logger.WriteLine("Expected NiSkinData at offset {0} not found", skinInstance.dataRef.index);
-                }
-            }
-        }
-
-        private bool RemoveSkin(ISet<uint> skinDone, NiAVObject blockObj)
-        {
-            if (!(blockObj is BSTriShape) && !(blockObj is NiTriShape) && !(blockObj is NiTriStrips))
-            {
-                // Non-trishape, FIND THE CHILDREN AND REMOVE THEIR SKIN!
-                using var childNodes = blockObj.CopyChildRefs();
-                foreach (var childNode in childNodes)
-                {
-                    using (childNode)
-                    {
-                        if (skinDone.Contains(childNode.index))
-                            continue;
-                        skinDone.Add(childNode.index);
-                        var block = blockCache.EditableBlockById<NiAVObject>(childNode.index);
-                        if (block == null)
-                            continue;
-                        meshHandler._settings.diagnostics.logger.WriteLine("Removing Skin @ Block: {0}", childNode.index);
-                        RemoveSkin(skinDone, block);
-                    }
-                }
-                return false;
-            }
-
-            // Basically just remove anything related to skin
-            NiShape? niShape = blockObj as NiShape;
-            if (niShape != null)
-            {
-                // Remove skin flag from shader		
-                if (niShape.HasShaderProperty())
-                {
-                    // remove unnecessary skinning on bows.
-                    using var shaderRef = niShape.ShaderPropertyRef();
-                    UnskinShader(shaderRef);
-                }
-                // Remove skin from BSTriShape
-                if (niShape.HasSkinInstance())
-                {
-                    niShape.SetSkinned(false);
-                    using var skinRef = niShape.SkinInstanceRef();
-                    NiSkinInstance skinInstance = blockCache.EditableBlockById<NiSkinInstance>(skinRef.index);
-                    if (skinInstance != null)
-                    {
-                        using var partitionRef = skinInstance.skinPartitionRef;
-                        if (!partitionRef.IsEmpty())
-                        {
-                            NiSkinPartition skinPartition = blockCache.EditableBlockById<NiSkinPartition>(partitionRef.index);
-                            if (skinPartition != null)
-                            {
-                                TransferVertexData(skinPartition, niShape as BSTriShape);
-                            }
-                        }
-                        else
-                        {
-                            meshHandler._settings.diagnostics.logger.WriteLine("Expected NiSkinPartition at offset {0} not found", partitionRef.index);
-                        }
-
-                        // Check for all scale transforms.
-                        TransformScale(niShape, skinInstance);
-                        // Remove the entire SkinInstance from the dest NIF
-                        niShape.SetSkinInstanceRef(niflycpp.NIF_NPOS);
-                    }
-                    else
-                    {
-                        meshHandler._settings.diagnostics.logger.WriteLine("Expected NiSkinInstance at offset {0} not found", skinRef.index);
-                    }
-
-                }
-            }
-            return true;
-        }
-
         // Rename scabbard and any children, we are copying the entire tree mirrored into the dest mesh
         private bool AddScabbardMirror(string nifPath, ISet<uint> alreadyDone, NiAVObject source, NiNode parent, bool scbRoot)
         {
@@ -266,9 +107,6 @@ namespace ImmersiveEquipmentDisplay
                 // seems that legacy trishapes aren't cloned properly, skip for now
                 if (blockDest is not BSTriShape)
                     return false;
-
-                if (IsBloodMesh(blockDest as NiShape))
-                    return true;
 
                 // TODO it appears these functions could be combined. Stick with script flow for safety, at least initially.
                 ApplyTransform(newId, blockDest); //In case things are at an angle where flipping Z would produce incorrect results.
@@ -327,80 +165,7 @@ namespace ImmersiveEquipmentDisplay
 
             return true;
         }
-
-        private bool IsBloodMesh(NiShape? shape)
-        {
-            // Check if the Shape is a bloodmesh. Shapes can be treated polymorphically.
-            // Blood meshes don't get used for the armor and just take up space.
-            // Let's just scan the textures for 'BloodEdge'??? That's like the only commonality I can find.
-            // Especially since there's a mod with a SE Mesh that has improper data that makes it cause CTD and this is the only thing I can use to catch it.
-            if (shape == null || !shape.HasShaderProperty())
-                return false;
-            using NiBlockRefNiShader shaderPropertyRef = shape.ShaderPropertyRef();
-            if (shaderPropertyRef == null || shaderPropertyRef.IsEmpty())
-                return false;
-            BSShaderProperty shaderProperty = blockCache.EditableBlockById<BSShaderProperty>(shaderPropertyRef.index);
-            if (shaderProperty != null)
-            {
-                if (shaderProperty.HasWeaponBlood())
-                    return true;
-                if (shaderProperty.HasTextureSet())
-                {
-                    using var textureSetRef = shaderProperty.TextureSetRef();
-                    if (!textureSetRef.IsEmpty())
-                    {
-                        BSShaderTextureSet textureSet = blockCache.EditableBlockById<BSShaderTextureSet>(textureSetRef.index);
-                        if (textureSet != null)
-                        {
-                            using var textures = textureSet.textures;
-                            using var texturePaths = textures.items();
-                            using var firstPath = texturePaths[0];
-                            string texturePath = firstPath.get();
-                            // Skullcrusher users bloodhit
-                            if (texturePath.Contains("blood\\bloodedge", StringComparison.OrdinalIgnoreCase) ||
-                                texturePath.Contains("blood\\bloodhit", StringComparison.OrdinalIgnoreCase))
-                                return true;
-                        }
-                        else
-                        {
-                            meshHandler._settings.diagnostics.logger.WriteLine("Expected BSShaderTextureSet at offset {0} not found", textureSetRef.index);
-                        }
-                    }
-                }
-
-                // NiTriShape blood has a NiStringExtraData sub-block named 'Keep' and 'NiHide' as its data.
-                // This was the original, dunno if Kesta needed it for something specific or not?
-                // Saw some meshes that couldn't keep this straight, and had NiHide/Keep reversed.
-                using var extraDataRefs = shape.extraDataRefs;
-                using var refList = extraDataRefs.GetRefs();
-                foreach (NiBlockRefNiExtraData extraDataRef in refList)
-                {
-                    using (extraDataRef)
-                    {
-                        if (extraDataRef.IsEmpty())
-                            continue;
-                        NiStringExtraData stringExtraData = blockCache.EditableBlockById<NiStringExtraData>(extraDataRef.index);
-                        if (stringExtraData != null)
-                        {
-                            using var name = stringExtraData.name;
-                            using var stringData = stringExtraData.stringData;
-                            if (name.get() == "Keep" && stringData.get() == "NiHide")
-                                return true;
-                        }
-                        else
-                        {
-                            meshHandler._settings.diagnostics.logger.WriteLine("Expected NiStringExtraData at offset {0} not found", extraDataRef.index);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                meshHandler._settings.diagnostics.logger.WriteLine("Expected BSShaderProperty at offset {0} not found", shaderPropertyRef.index);
-            }
-            return false;
-        }
-		
+        
 		// Avoid Access Violation in C++ code
         private void CheckSetNormals(uint id, BSTriShape shape, vectorVector3 rawNormals, int vertexCount)
         {

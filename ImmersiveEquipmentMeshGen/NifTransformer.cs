@@ -84,20 +84,55 @@ namespace ImmersiveEquipmentDisplay
             }
         }
 
-        // Rename scabbard and any children, we are copying the entire tree mirrored into the dest mesh
-        private bool AddScabbardMirror(string nifPath, ISet<uint> alreadyDone, NiAVObject source, NiNode parent, bool scbRoot)
+        private bool GenerateNodeName(bool isRoot, string sourceName, out string nameOut)
         {
+            if (isRoot)
+            {
+                nameOut = ScbTag + LeftSuffix;
+            }
+            else
+            {
+                // Ensure child nodes have unique names
+
+                string baseName = sourceName + LeftSuffix;
+
+                nameOut = baseName;
+
+                for (uint i = 0, tag = header.GetStringCount(); header.FindStringId(nameOut) != nifly.niflycpp.NIF_NPOS; i++, tag++)
+                {
+                    nameOut = baseName + ':' + tag;
+
+                    // failsafe (paranoia, practically impossible to hit)
+                    if (i == 10000)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        // Rename scabbard and any children, we are copying the entire tree mirrored into the dest mesh
+        private bool AddScabbardMirror(ISet<uint> alreadyDone, NiAVObject source, NiNode parent, bool isRoot)
+        {
+            if (!GenerateNodeName(isRoot, source.name.get(), out string newName))
+            {
+                meshHandler._settings.diagnostics.logger.WriteLine(
+                    "{0}: AddScabbardMirror : unable to generate node name {1}", nifPath, source.name.get());
+
+                return false;
+            }
+
             using NiAVObject blockDest = niflycpp.BlockCache.SafeClone<NiAVObject>(source);
 
-            using var blockName = source.name;
-            string newName = blockName.get() + LeftSuffix;
             uint newId = header.AddOrFindStringId(newName);
             NiStringRef newRef = new NiStringRef(newName);
             newRef.SetIndex(newId);
             blockDest.name = newRef;
 
             // Hide the mirror (just the root), Immersive Equipment Display/Simple Dual Sheath will unhide as needed
-            if (scbRoot)
+            if (isRoot)
             {
                 blockDest.flags |= 0x1;
             }
@@ -133,8 +168,8 @@ namespace ImmersiveEquipmentDisplay
                                 continue;
                             alreadyDone.Add(childNode.index);
                             meshHandler._settings.diagnostics.logger.WriteLine("{0}: AddScabbardMirror checking Child {1}", nifPath, childNode.index);
-                            
-                            if (!AddScabbardMirror(nifPath, alreadyDone, block, destNode, false))
+
+                            if (!AddScabbardMirror(alreadyDone, block, destNode, false))
                             {
                                 return false;
                             }
@@ -145,7 +180,7 @@ namespace ImmersiveEquipmentDisplay
             }
 
             // scb root should have atleast one child
-            if (scbRoot)
+            if (isRoot)
             {
                 NiNode? node = blockDest as NiNode;
                 if (node is not null)
@@ -165,8 +200,8 @@ namespace ImmersiveEquipmentDisplay
 
             return true;
         }
-        
-		// Avoid Access Violation in C++ code
+
+        // Avoid Access Violation in C++ code
         private void CheckSetNormals(uint id, BSTriShape shape, vectorVector3 rawNormals, int vertexCount)
         {
             if (shape.GetNumVertices() != rawNormals.Count)
@@ -212,7 +247,7 @@ namespace ImmersiveEquipmentDisplay
                     bsTriShape.vertData = vertexDataList;
                     CheckSetNormals(id, bsTriShape, newRawNormals, vertexDataList.Count);
 
-                    using  vectorTriangle newTriangles = new vectorTriangle();
+                    using vectorTriangle newTriangles = new vectorTriangle();
                     using var oldTriangles = bsTriShape.triangles;
                     foreach (Triangle triangle in oldTriangles)
                     {
@@ -487,7 +522,7 @@ namespace ImmersiveEquipmentDisplay
                 meshHandler._settings.diagnostics.logger.WriteLine("Attempting to generate transformed Mesh for {0}", nifPath);
 
                 // Transform Mesh in place
-                if (!AddScabbardMirror(nifPath, new HashSet<uint>(), scabbard, rootNode, true))
+                if (!AddScabbardMirror(new HashSet<uint>(), scabbard, rootNode, true))
                 {
                     meshHandler._settings.diagnostics.logger.WriteLine("{0}: AddScabbardMirror returned false", nifPath);
                     return;

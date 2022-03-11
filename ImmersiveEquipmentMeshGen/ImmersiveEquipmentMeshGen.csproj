@@ -3,8 +3,8 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
     <TargetPlatformIdentifier>Windows</TargetPlatformIdentifier>
-    <Version>1.3.0</Version>
-    <PackageReleaseNotes>Align with fixed niflysharp</PackageReleaseNotes>
+    <Version>1.3.1</Version>
+    <PackageReleaseNotes>Fixed scabbard node naming (thanks to slavicpotato1)</PackageReleaseNotes>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <PlatformTarget>x64</PlatformTarget>

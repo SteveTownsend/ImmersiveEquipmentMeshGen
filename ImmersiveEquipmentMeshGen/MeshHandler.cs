@@ -337,8 +337,33 @@ namespace ImmersiveEquipmentDisplay
             IDictionary<string, string> bsaDone = new ConcurrentDictionary<string, string>();
             if (bsaFiles.Count > 0)
             {
+                List<Noggog.FilePath> archivePaths = new();
+
+                // create archive path list according to load order
+                foreach (var e in ScriptLess.PatcherState.LoadOrder)
+                {
+                    foreach (var f in Archive.GetApplicableArchivePaths(GameRelease.SkyrimSE, ScriptLess.PatcherState.DataFolderPath, e.Value.ModKey).Reverse())
+                    {
+                        // GetApplicableArchivePaths includes base archives for each mod
+                        if (!archivePaths.Contains(f))
+                        {
+                            archivePaths.Insert(0, f);
+                        }
+                    }
+                }
+
+                // debug
+                if (archivePaths.Count > 0)
+                {
+                    _settings.diagnostics.logger.WriteLine("Processing {0} BSA files:", archivePaths.Count);
+                    foreach (var e in archivePaths)
+                    {
+                        _settings.diagnostics.logger.WriteLine("\t{0}", e);
+                    }
+                }
+
                 // Introspect all known BSAs to locate meshes not found as loose files. Dups are ignored - first find wins.
-                foreach (var bsaFile in Archive.GetApplicableArchivePaths(GameRelease.SkyrimSE, ScriptLess.PatcherState.DataFolderPath))
+                foreach (var bsaFile in archivePaths)
                 {
                     var bsaReader = Archive.CreateReader(GameRelease.SkyrimSE, bsaFile);
                     bsaReader.Files.AsParallel().
@@ -363,7 +388,7 @@ namespace ImmersiveEquipmentDisplay
                             {
                                 _settings.diagnostics.logger.WriteLine("Transform mesh {0} from BSA {1}", bsaMesh.Path, bsaFile);
                                 string newFile = _settings.meshes.OutputFolder + bsaMesh.Path;
-                                GenerateMesh(nif, bsaMesh.Path, newFile, targetMeshes[rawPath].modelType);
+                                GenerateMesh(nif, bsaMesh.Path, newFile, meshInfo.modelType);
                             }
                             bsaDone.Add(rawPath, bsaFile);
                         }

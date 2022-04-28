@@ -11,6 +11,10 @@ using SSEForms = Mutagen.Bethesda.FormKeys.SkyrimSE;
 using nifly;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Archives;
+using IniParser;
+using IniParser.Model.Configuration;
+using IniParser.Parser;
+using Noggog;
 
 namespace ImmersiveEquipmentDisplay
 {
@@ -32,7 +36,8 @@ namespace ImmersiveEquipmentDisplay
         private IDictionary<string, TargetMeshInfo> targetMeshes = new Dictionary<string, TargetMeshInfo>();
         private readonly object recordLock = new object();
 
-        public enum ModelType {
+        public enum ModelType
+        {
             Unknown = 0,
             Sword,
             Dagger,
@@ -44,7 +49,8 @@ namespace ImmersiveEquipmentDisplay
             Shield
         };
 
-        internal enum WeaponType {
+        internal enum WeaponType
+        {
             Unknown = 0,
             OneHandMelee,
             TwoHandMelee,
@@ -300,6 +306,132 @@ namespace ImmersiveEquipmentDisplay
             }
         }
 
+        /* engine reverts to defaults if it can't read files (the archaic GetPrivateProfile api is used), we might as well 
+         * throw and force the user to sort out their stuff */
+        internal static string? ReadIniValue(FileIniDataParser a_parser, FilePath a_path, string a_section, string a_key)
+        {
+            var data = a_parser.ReadData(new StreamReader(IFileSystemExt.DefaultFilesystem.File.OpenRead(a_path)));
+            
+            var section = data[a_section];
+            if (section != null)
+            {
+                return section[a_key];
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        // get a value from the winning mod ini override or Skyrim.ini if none exist
+        internal static string? GetWinningIniValue(string a_section, string a_key)
+        {
+            IniParserConfiguration parserConfig = new()
+            {
+                AllowDuplicateKeys = true,
+                AllowDuplicateSections = true,
+                AllowKeysWithoutSection = true,
+                AllowCreateSectionsOnFly = true,
+                CaseInsensitive = true,
+                SkipInvalidLines = true,
+            };
+            var parser = new FileIniDataParser(new IniDataParser(parserConfig));
+
+            foreach (var e in ScriptLess.PatcherState.LoadOrder.PriorityOrder)
+            {
+                if (!e.Enabled)
+                {
+                    continue;
+                }
+
+                FilePath path = Path.Combine(ScriptLess.PatcherState.DataFolderPath, e.ModKey.Name + ".ini");
+
+                if (!path.CheckExists())
+                {
+                    continue;
+                }
+
+                var value = ReadIniValue(parser, path, a_section, a_key);
+                if (value != null)
+                {
+                    return value;
+                }
+            }
+
+            // Ini.GetTypicalPath isn't exposed, since we're only targetting SE this is enough
+            FilePath basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Skyrim Special Edition", "Skyrim.ini");
+
+            return ReadIniValue(parser, basePath, a_section, a_key);
+        }
+
+        public enum ResourceArchiveList
+        {
+            Primary,
+            Secondary
+        };
+
+        // retrieve a list, parse comma-delimited filenames, prune zero-length strings and non-existent paths and return as FilePath list
+        internal static List<FilePath>? GetResourceArchiveList(ResourceArchiveList a_list)
+        {
+            string key = a_list == ResourceArchiveList.Secondary ?
+                "sResourceArchiveList2" :
+                "sResourceArchiveList";
+
+            return 
+                GetWinningIniValue("Archive", key)?
+                .Split(",", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => new FilePath(Path.Combine(ScriptLess.PatcherState.DataFolderPath, x)) )
+                .Where(x => x.CheckExists())
+                .ToList();
+        }
+
+        internal static List<FilePath> GetBaseArchivePaths()
+        {
+            var l1 = GetResourceArchiveList(ResourceArchiveList.Primary);
+            var l2 = GetResourceArchiveList(ResourceArchiveList.Secondary);
+
+            return l1.EmptyIfNull().And(l2.EmptyIfNull()).ToList();
+        }
+
+        internal static List<FilePath> GetPossibleModArchives(ModKey a_modKey)
+        {
+            var ext = Archive.GetExtension(GameRelease.SkyrimSE);
+
+            return new()
+            {
+                Path.Combine(ScriptLess.PatcherState.DataFolderPath, a_modKey.Name + ext),
+                Path.Combine(ScriptLess.PatcherState.DataFolderPath, a_modKey.Name + " - Textures" + ext)
+            };
+        }
+
+        // get archive path list according to load order
+        internal static List<FilePath> GetOrderedArchivePaths()
+        {
+            var result = GetBaseArchivePaths();
+
+            ScriptLess.PatcherState.LoadOrder.ListedOrder.ForEach(x =>
+            {
+                if (x.Enabled)
+                {
+                    result.AddRange(
+                        GetPossibleModArchives(x.ModKey)
+                        .Where(y => y.CheckExists() && !result.Contains(y)));
+                }
+            });
+
+            return result;
+        }
+        
+        // get priority archive path list 
+        internal static List<FilePath> GetPriorityArchivePaths()
+        {
+            var result = GetOrderedArchivePaths();
+
+            result.Reverse();
+
+            return result;
+        }
+
         // Mesh Generation logic originally from 'AllGUD Weapon Mesh Generator.pas'
         internal void TransformMeshes()
         {
@@ -337,29 +469,14 @@ namespace ImmersiveEquipmentDisplay
             IDictionary<string, string> bsaDone = new ConcurrentDictionary<string, string>();
             if (bsaFiles.Count > 0)
             {
-                List<Noggog.FilePath> archivePaths = new();
-
-                // create archive path list according to load order
-                foreach (var e in ScriptLess.PatcherState.LoadOrder)
-                {
-                    foreach (var f in Archive.GetApplicableArchivePaths(GameRelease.SkyrimSE, ScriptLess.PatcherState.DataFolderPath, e.Value.ModKey).Reverse())
-                    {
-                        // GetApplicableArchivePaths includes base archives for each mod
-                        if (!archivePaths.Contains(f))
-                        {
-                            archivePaths.Insert(0, f);
-                        }
-                    }
-                }
+                var archivePaths = GetPriorityArchivePaths();
 
                 // debug
                 if (archivePaths.Count > 0)
                 {
                     _settings.diagnostics.logger.WriteLine("Processing {0} BSA files:", archivePaths.Count);
-                    foreach (var e in archivePaths)
-                    {
-                        _settings.diagnostics.logger.WriteLine("\t{0}", e);
-                    }
+
+                    archivePaths.ForEach(x => _settings.diagnostics.logger.WriteLine("\t{0}", x));
                 }
 
                 // Introspect all known BSAs to locate meshes not found as loose files. Dups are ignored - first find wins.
@@ -374,7 +491,8 @@ namespace ImmersiveEquipmentDisplay
                         {
                             string rawPath = bsaFiles[bsaMesh.Path.ToLower()];
                             TargetMeshInfo meshInfo = targetMeshes[rawPath];
-                            if (bsaDone.ContainsKey(rawPath))
+
+                            if (!bsaDone.TryAdd(rawPath, bsaFile))
                             {
                                 _settings.diagnostics.logger.WriteLine("Mesh {0} from BSA {1} already processed from BSA {2}", bsaMesh.Path, bsaFile, bsaDone[rawPath]);
                                 return;
@@ -390,7 +508,6 @@ namespace ImmersiveEquipmentDisplay
                                 string newFile = _settings.meshes.OutputFolder + bsaMesh.Path;
                                 GenerateMesh(nif, bsaMesh.Path, newFile, meshInfo.modelType);
                             }
-                            bsaDone.Add(rawPath, bsaFile);
                         }
                         catch (Exception e)
                         {

@@ -6,11 +6,13 @@ using System.Linq;
 using System.Threading;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Skyrim;
+using Mutagen.Bethesda.Synthesis;
+using Mutagen.Bethesda.Plugins;
+using Mutagen.Bethesda.Archives;
+using Mutagen.Bethesda.Inis.DI;
 using System.Threading.Tasks;
 using SSEForms = Mutagen.Bethesda.FormKeys.SkyrimSE;
 using nifly;
-using Mutagen.Bethesda.Plugins;
-using Mutagen.Bethesda.Archives;
 using IniParser;
 using IniParser.Model.Configuration;
 using IniParser.Parser;
@@ -289,11 +291,6 @@ namespace ImmersiveEquipmentDisplay
                 if (weaponType == WeaponType.OneHandMelee ||
                     (weaponType == WeaponType.TwoHandMelee && _settings.meshes.Accept2HWeapons))
                 {
-                    _settings.diagnostics.logger.WriteLine("Skip {0}, incorrect WeaponType {1}", originalPath, weaponType);
-                    Interlocked.Increment(ref countSkipped);
-                }
-                else
-                {
                     // TODO selective patching by weapon type would need a filter here
                     Interlocked.Increment(ref countCandidates);
                     using NifTransformer transformer = new NifTransformer(this, nif, originalPath, newPath, modelType, weaponType);
@@ -303,7 +300,7 @@ namespace ImmersiveEquipmentDisplay
                 {
                     _settings.diagnostics.logger.WriteLine("Skip {0}, incorrect WeaponType {1}", originalPath, weaponType);
                     Interlocked.Increment(ref countSkipped);
-            }
+                }
             }
             catch (Exception e)
             {
@@ -317,7 +314,7 @@ namespace ImmersiveEquipmentDisplay
         internal static string? ReadIniValue(FileIniDataParser a_parser, FilePath a_path, string a_section, string a_key)
         {
             var data = a_parser.ReadData(new StreamReader(IFileSystemExt.DefaultFilesystem.File.OpenRead(a_path)));
-            
+
             var section = data[a_section];
             if (section != null)
             {
@@ -330,7 +327,7 @@ namespace ImmersiveEquipmentDisplay
         }
 
         // get a value from the winning mod ini override or Skyrim.ini if none exist
-        internal static string? GetWinningIniValue(string a_section, string a_key)
+        internal static string? GetWinningIniValue(GameRelease a_gameRelease, string a_section, string a_key)
         {
             IniParserConfiguration parserConfig = new()
             {
@@ -364,8 +361,8 @@ namespace ImmersiveEquipmentDisplay
                 }
             }
 
-            // Ini.GetTypicalPath isn't exposed, since we're only targetting SE this is enough
-            FilePath basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Skyrim Special Edition", "Skyrim.ini");
+            IniPathLookup? iniPathLookup = new IniPathLookup();
+            FilePath basePath = iniPathLookup.Get(a_gameRelease);
 
             return ReadIniValue(parser, basePath, a_section, a_key);
         }
@@ -377,31 +374,31 @@ namespace ImmersiveEquipmentDisplay
         };
 
         // retrieve a list, parse comma-delimited filenames, prune zero-length strings and non-existent paths and return as FilePath list
-        internal static List<FilePath>? GetResourceArchiveList(ResourceArchiveList a_list)
+        internal static List<FilePath>? GetResourceArchiveList(GameRelease a_gameRelease, ResourceArchiveList a_list)
         {
             string key = a_list == ResourceArchiveList.Secondary ?
                 "sResourceArchiveList2" :
                 "sResourceArchiveList";
 
-            return 
-                GetWinningIniValue("Archive", key)?
+            return
+                GetWinningIniValue(a_gameRelease, "Archive", key)?
                 .Split(",", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => new FilePath(Path.Combine(ScriptLess.PatcherState.DataFolderPath, x)) )
+                .Select(x => new FilePath(Path.Combine(ScriptLess.PatcherState.DataFolderPath, x)))
                 .Where(x => x.CheckExists())
                 .ToList();
         }
 
-        internal static List<FilePath> GetBaseArchivePaths()
+        internal static List<FilePath> GetBaseArchivePaths(GameRelease a_gameRelease)
         {
-            var l1 = GetResourceArchiveList(ResourceArchiveList.Primary);
-            var l2 = GetResourceArchiveList(ResourceArchiveList.Secondary);
+            var l1 = GetResourceArchiveList(a_gameRelease, ResourceArchiveList.Primary);
+            var l2 = GetResourceArchiveList(a_gameRelease, ResourceArchiveList.Secondary);
 
             return l1.EmptyIfNull().And(l2.EmptyIfNull()).ToList();
         }
 
-        internal static List<FilePath> GetPossibleModArchives(ModKey a_modKey)
+        internal static List<FilePath> GetPossibleModArchives(GameRelease a_gameRelease, ModKey a_modKey)
         {
-            var ext = Archive.GetExtension(GameRelease.SkyrimSE);
+            var ext = Archive.GetExtension(a_gameRelease);
 
             return new()
             {
@@ -411,27 +408,27 @@ namespace ImmersiveEquipmentDisplay
         }
 
         // get archive path list according to load order
-        internal static List<FilePath> GetOrderedArchivePaths()
+        internal static List<FilePath> GetOrderedArchivePaths(GameRelease a_gameRelease)
         {
-            var result = GetBaseArchivePaths();
+            var result = GetBaseArchivePaths(a_gameRelease);
 
             ScriptLess.PatcherState.LoadOrder.ListedOrder.ForEach(x =>
             {
                 if (x.Enabled)
                 {
                     result.AddRange(
-                        GetPossibleModArchives(x.ModKey)
+                        GetPossibleModArchives(a_gameRelease, x.ModKey)
                         .Where(y => y.CheckExists() && !result.Contains(y)));
                 }
             });
 
             return result;
         }
-        
+
         // get priority archive path list 
-        internal static List<FilePath> GetPriorityArchivePaths()
+        internal static List<FilePath> GetPriorityArchivePaths(GameRelease a_gameRelease)
         {
-            var result = GetOrderedArchivePaths();
+            var result = GetOrderedArchivePaths(a_gameRelease);
 
             result.Reverse();
 
@@ -439,7 +436,7 @@ namespace ImmersiveEquipmentDisplay
         }
 
         // Mesh Generation logic originally from 'AllGUD Weapon Mesh Generator.pas'
-        internal void TransformMeshes()
+        internal void TransformMeshes(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             // no op if empty
             if (targetMeshes.Count == 0)
@@ -475,7 +472,7 @@ namespace ImmersiveEquipmentDisplay
             IDictionary<string, string> bsaDone = new ConcurrentDictionary<string, string>();
             if (bsaFiles.Count > 0)
             {
-                var archivePaths = GetPriorityArchivePaths();
+                var archivePaths = GetPriorityArchivePaths(state.GameRelease);
 
                 // debug
                 if (archivePaths.Count > 0)
@@ -488,7 +485,7 @@ namespace ImmersiveEquipmentDisplay
                 // Introspect all known BSAs to locate meshes not found as loose files. Dups are ignored - first find wins.
                 foreach (var bsaFile in archivePaths)
                 {
-                    var bsaReader = Archive.CreateReader(GameRelease.SkyrimSE, bsaFile);
+                    var bsaReader = Archive.CreateReader(state.GameRelease, bsaFile);
                     bsaReader.Files.AsParallel().
                         Where(candidate => bsaFiles.ContainsKey(candidate.Path.ToLower())).
                         ForAll(bsaMesh =>

@@ -286,7 +286,8 @@ namespace ImmersiveEquipmentDisplay
                 modelType = FinalizeModelType(nif, originalPath, modelType);
 
                 WeaponType weaponType = weaponTypeByModelType[modelType];
-                if (weaponType != WeaponType.OneHandMelee)
+                if (weaponType == WeaponType.OneHandMelee ||
+                    (weaponType == WeaponType.TwoHandMelee && _settings.meshes.Accept2HWeapons))
                 {
                     _settings.diagnostics.logger.WriteLine("Skip {0}, incorrect WeaponType {1}", originalPath, weaponType);
                     Interlocked.Increment(ref countSkipped);
@@ -298,6 +299,11 @@ namespace ImmersiveEquipmentDisplay
                     using NifTransformer transformer = new NifTransformer(this, nif, originalPath, newPath, modelType, weaponType);
                     transformer.Generate();
                 }
+                else
+                {
+                    _settings.diagnostics.logger.WriteLine("Skip {0}, incorrect WeaponType {1}", originalPath, weaponType);
+                    Interlocked.Increment(ref countSkipped);
+            }
             }
             catch (Exception e)
             {

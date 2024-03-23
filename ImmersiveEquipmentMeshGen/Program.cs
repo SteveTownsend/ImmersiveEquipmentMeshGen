@@ -4,9 +4,7 @@ using Mutagen.Bethesda;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using System.Threading.Tasks;
-using ImmersiveEquipmentDisplay;
 using nifly;
-using Mutagen.Bethesda.Plugins;
 
 namespace ImmersiveEquipmentDisplay
 {
@@ -41,6 +39,8 @@ namespace ImmersiveEquipmentDisplay
         {
             patcherState = state;
 
+            settings.diagnostics.logger.WriteLine("Game release: {0}", state.GameRelease.ToString());
+
             // Validate Settings, abort if invalid
             var settingsErrors = _settings.Value.GetConfigErrors();
             if (settingsErrors.Count > 0)
@@ -62,7 +62,7 @@ namespace ImmersiveEquipmentDisplay
             long analysisTime = stopWatch.ElapsedMilliseconds;
 
             // Transform meshes, including any records with alternate textures
-            meshHandler.TransformMeshes();
+            meshHandler.TransformMeshes(state);
             long meshTime = stopWatch.ElapsedMilliseconds - analysisTime;
 
             settings.diagnostics.logger.WriteLine("Records analysis: {0} ms", analysisTime);

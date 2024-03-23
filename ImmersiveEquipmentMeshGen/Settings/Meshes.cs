@@ -18,6 +18,11 @@ namespace ImmersiveEquipmentDisplay
         public string OutputFolder { get; set; } = "";
         //public string OutputFolder { get; set; } = "j:/omegalotd/tools/mods/Immersive Equipment Display Output";
 
+        [SynthesisSettingName("Process Two-Handed Weapon Meshes")]
+        [SynthesisTooltip("For use with mods which may change 2H weapon grips to 1H (CGO for example).")]
+        [SynthesisDescription("Create left scabbards for 2H weapon meshes.")]
+        public bool Accept2HWeapons { get; set; } = false;
+
         private List<string[]> _nifBlackList = new List<string[]>();
         private static List<string> DefaultBlackList()
         {

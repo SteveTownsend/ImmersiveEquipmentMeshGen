@@ -16,6 +16,7 @@ using nifly;
 using IniParser;
 using IniParser.Model.Configuration;
 using IniParser.Parser;
+using Mutagen.Bethesda.Inis;
 using Noggog;
 
 namespace ImmersiveEquipmentDisplay
@@ -361,8 +362,7 @@ namespace ImmersiveEquipmentDisplay
                 }
             }
 
-            IniPathLookup? iniPathLookup = new IniPathLookup();
-            FilePath basePath = iniPathLookup.Get(a_gameRelease);
+            FilePath basePath = Ini.GetTypicalPath(a_gameRelease);
 
             return ReadIniValue(parser, basePath, a_section, a_key);
         }

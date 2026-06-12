@@ -349,3 +349,5 @@ healthchecksdb
 MigrationBackup/
 /AllGUDMeshGen/Properties/launchSettings.json
 /PatcherTest/Data
+
+.idea/

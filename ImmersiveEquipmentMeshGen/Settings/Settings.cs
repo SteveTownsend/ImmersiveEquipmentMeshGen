@@ -5,7 +5,7 @@ namespace ImmersiveEquipmentDisplay
 {
     public class Settings
     {
-        [SynthesisSettingName("Minimum Immersive Equipment Display version (display only):")]
+        [SynthesisSettingName("Minimum Immersive Equipment Displays version (display only):")]
         public string immersiveEquipmentDisplayVersion { get; } = "1.1.1";
 
         [SynthesisSettingName("Diagnostics")]
